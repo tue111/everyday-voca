@@ -1,0 +1,18 @@
+node_modules/
+dist/
+# Keep real environment files and backups local; commit only the template.
+.env*
+!.env.example
+.vercel/
+.data/
+.test-data/
+playwright-report/
+test-results/
+coverage/
+*.tsbuildinfo
+.npm-cache/
+
+# Local logs and private key material.
+*.log
+*.pem
+*.key

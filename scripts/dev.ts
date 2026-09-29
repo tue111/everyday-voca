@@ -1,0 +1,13 @@
+import { createServer } from 'node:http';
+import { createServer as createViteServer } from 'vite';
+import { handle } from '../server/http.js';
+const port = Number(process.env.PORT || 5173);
+const apiPort = Number(process.env.API_PORT || 3001);
+const http = createServer(handle);
+await new Promise<void>((resolve, reject) => { http.once('error', reject); http.listen(apiPort, '127.0.0.1', resolve); });
+const vite = await createViteServer({ server: { port, strictPort: true } });
+await vite.listen();
+console.log('Everyday Voca: http://127.0.0.1:' + port);
+const stop = async () => { await vite.close(); http.close(); process.exit(0); };
+process.on('SIGINT', stop);
+process.on('SIGTERM', stop);

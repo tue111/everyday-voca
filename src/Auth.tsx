@@ -1,0 +1,9 @@
+import { useState } from 'react';
+import { ArrowRight, Clock3, Sparkles } from 'lucide-react';
+import { useApp } from './state';
+import { Artwork, Brand, ErrorNote } from './components';
+export function Welcome(){
+ const{run}=useApp();const[recover,setRecover]=useState(false),[value,setValue]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+ const submit=async(e:React.FormEvent)=>{e.preventDefault();setBusy(true);setError('');try{await run(recover?{action:'recover',code:value}:{action:'register',name:value});}catch(e){setError((e as Error).message);}finally{setBusy(false);}};
+ return <main className="welcome"><div className="welcome-story"><Brand/><div className="welcome-copy"><div className="eyebrow">A LITTLE EVERY DAY</div><h1>하루의 작은 틈,<br/>나를 넓히는 영어.</h1><p>오늘의 표현 열 개.<br/>조금씩 배우고, 오래 기억해요.</p><Artwork/></div><small>작은 습관이 쌓여, 자연스러운 영어가 됩니다.</small></div><section className="welcome-form"><span className="pill"><Sparkles size={14}/> EVERYDAY, AT YOUR PACE</span><h2>{recover?'다시 만나 반가워요.':'우리, 오늘부터 시작해요.'}</h2><p className="muted">{recover?'보관한 복구 코드를 입력해 주세요.':'이름만 알려 주세요. 나머지는 가볍게 시작하면 돼요.'}</p><form onSubmit={submit}><label className="field-label" htmlFor="welcome-input">{recover?'복구 코드':'어떻게 불러 드릴까요?'}</label><input id="welcome-input" value={value} onChange={e=>setValue(e.target.value)} placeholder={recover?'보관한 코드를 붙여 넣으세요':'이름 또는 닉네임'} maxLength={recover?100:30} autoComplete="off" required disabled={busy}/><ErrorNote message={error}/><button className="button primary wide" disabled={busy||!value.trim()}>{busy?'잠시만요…':recover?'내 기록 이어가기':'나의 첫 표현 만나기'}<ArrowRight size={18}/></button></form><button className="text-button recovery-switch" onClick={()=>{setRecover(!recover);setValue('');setError('');}}>{recover?'처음이에요 · 새로 시작하기':'이미 사용하고 있나요? 복구 코드로 이어가기'}</button><div className="welcome-note"><Clock3 size={18}/><span>하루 5~10분 · 일상 표현 10개 · 나만의 속도로</span></div></section></main>;
+}

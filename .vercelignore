@@ -1,0 +1,12 @@
+.env*
+.data/
+.test-data/
+.npm-cache/
+node_modules/
+playwright-report/
+test-results/
+coverage/
+.git/
+*.log
+*.pem
+*.key

@@ -1,0 +1,6 @@
+import { useApp } from './state';
+import { StudyHeader } from './components';
+export function HistoryPage(){
+ const{view}=useApp(),stats=view.stats!;
+ return <><StudyHeader title="작은 순간들이 쌓이고 있어요." sub="YOUR LEARNING JOURNEY"/><div className="stat-grid"><div><span>학습을 마친 날</span><strong>{stats.completedDays}<small>일</small></strong></div><div><span>만나 본 표현</span><strong>{stats.learned}<small>개</small></strong></div><div><span>오늘의 진행</span><strong>{view.progress!.answers.length}<small>/ 10</small></strong></div></div><section className="panel"><h2>최근 학습 기록</h2>{stats.recent.length?stats.recent.map(day=><div className="history-row" key={day.date}><span>{day.date}</span><div className="tiny-track"><span style={{width:day.count*10+'%'}}/></div><span>{day.count===10?'완료':day.count+'/10'}</span><small>정답 {day.correct}개</small></div>):<p className="muted">첫 학습을 시작하면 여기에 기록이 쌓여요.</p>}</section><section className="panel"><h2>시간이 지나도 기억하고 있나요?</h2><p className="muted">첫 학습으로부터 3일·7일째, 힌트 없이 푼 첫 복습을 기준으로 해요.</p><div className="recall-grid">{([3,7] as const).map(n=>{const s=n===3?stats.recall3:stats.recall7;return <div key={n}><span>{n}일 뒤 기억</span><strong>{s.total?Math.round(s.correct/s.total*100)+'%':'아직 기록이 없어요'}</strong><small>복습 {s.total}개</small></div>;})}</div></section></>;
+}
