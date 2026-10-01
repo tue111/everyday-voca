@@ -1,6 +1,6 @@
 import type { Attempt, Bundle, Item, Subscription } from '../shared/contracts.js';
 export type Lesson = Bundle & { date: string; source: 'ai' | 'fallback' };
-export type Progress = { card: number; cardsDone: boolean; answers: Attempt[]; hints: string[]; completedAt?: string };
+export type Progress = { card: number; cardsDone: boolean; answers: Attempt[]; hints: string[]; completedAt?: string; retrySession?: { id: string; itemIds: string[]; answers: Attempt[]; hints: string[] } };
 export type Review = { item: Item; due: string; stage: number; wrong: boolean; learnedAt: string; lastAt: string; observations: { date: string; correct: boolean; hinted: boolean; age: number }[] };
 export type User = {
   id: string; name: string; createdAt: string; recoveryHash: string;

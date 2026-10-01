@@ -2,7 +2,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import type { Store } from './store.js';
 import { addDays, koreanDate, type Clock } from './clock.js';
 import { fallbackBundle } from './fixtures.js';
-import { normalize, type Attempt, type Command, type Item, type Question, type Reply, type View } from '../shared/contracts.js';
+import { feedbackTranslation, normalize, type Attempt, type Command, type Item, type Question, type Reply, type View } from '../shared/contracts.js';
 import type { Progress, State, User } from './model.js';
 export class AppError extends Error { constructor(public status: number, message: string) { super(message); } }
 export const hash = (text: string) => createHash('sha256').update(text).digest('hex');
@@ -39,6 +39,7 @@ export class AppService {
      date, user: { id: u.id, name: u.name }, lesson: { topic: l.topic, source: l.source, items: l.items.map(({id,expression,kind,meaning,example,translation}) => ({id,expression,kind,meaning,example,translation})) },
      progress: { card: p.card, cardsDone: p.cardsDone, answers: p.answers, completedAt: p.completedAt },
      question: p.cardsDone ? question(l.items[p.answers.length], p.hints) : undefined,
+     retry: p.retrySession ? { id:p.retrySession.id, total:p.retrySession.itemIds.length, answers:p.retrySession.answers, question:question(l.items.find(i=>i.id===p.retrySession!.itemIds[p.retrySession!.answers.length]),p.retrySession.hints) } : undefined,
      review: { due: dueKeys(u,date).length, session: session ? { id:session.id, total: session.keys.length, answers:session.answers, question:question(u.reviews[session.keys[session.answers.length]]?.item, session.hints) } : undefined },
      stats: { completedDays:Object.values(u.progress).filter(p => p.completedAt).length, learned: Object.keys(u.reviews).length, recent:Object.entries(u.progress).sort(([a],[b]) => b.localeCompare(a)).slice(0,14).map(([date,p]) => ({date,count:p.answers.length,correct:p.answers.filter(a=>a.correct).length})), recall3:recall(3), recall7:recall(7) },
      pushPublicKey: this.pushPublicKey, pushEnabled:u.subscriptions.length > 0,
@@ -86,6 +87,16 @@ export class AppService {
      const lesson = ensureLesson(s,today), p = u.progress[today] ??= emptyProgress();
      if (cmd.action === 'card') p.card = cmd.index;
      if (cmd.action === 'startQuiz') p.cardsDone = true;
+     if (cmd.action === 'startRetry') {
+       if (!p.completedAt) throw new AppError(409,'오늘의 퀴즈를 먼저 완료해 주세요.');
+       const itemIds = p.answers.filter(a=>!a.correct).map(a=>a.itemId);
+       if (!itemIds.length) throw new AppError(409,'다시 풀 오답이 없어요.');
+       const previous = p.retrySession;
+       // Replayed starts resume; only a completed session's exact ID can restart it.
+       if (!previous || (previous.id===cmd.previousSessionId && previous.answers.length===previous.itemIds.length)) {
+         p.retrySession = {id:newId,itemIds,answers:[],hints:[]};
+       }
+     }
      if (cmd.action === 'startReview') {
        if (!u.reviewSession || u.reviewSession.date !== today || u.reviewSession.answers.length === u.reviewSession.keys.length) {
          u.reviewSession = {id:newId,date:today,keys:dueKeys(u,today).slice(0,10),answers:[],hints:[]};
@@ -93,21 +104,25 @@ export class AppService {
      }
      if (cmd.action === 'answer' || cmd.action === 'hint') {
        const review = cmd.target === 'review';
+       const retry = cmd.target === 'retry';
        const session = u.reviewSession;
+       const retrySession = p.retrySession;
+       if (retry && (!p.completedAt || !retrySession || retrySession.id !== cmd.sessionId)) throw new AppError(409,'오답 다시 풀기를 다시 열어 주세요.');
        if (review && (!session || session.date !== today || session.id !== cmd.sessionId)) throw new AppError(409,'복습을 다시 시작해 주세요.');
        if (!review && !p.cardsDone) throw new AppError(409,'카드를 먼저 확인해 주세요.');
-       const answers = review ? session!.answers : p.answers;
-       const hints = review ? session!.hints : p.hints;
+       const answers = retry ? retrySession!.answers : review ? session!.answers : p.answers;
+       const hints = retry ? retrySession!.hints : review ? session!.hints : p.hints;
        const old = answers.find(a => a.itemId === cmd.itemId);
        if (old) feedback = old;
        else {
          const key = review ? session!.keys[answers.length] : undefined;
-         const item = review ? u.reviews[key!]?.item : lesson.items[answers.length];
+         const item = retry ? lesson.items.find(i=>i.id===retrySession!.itemIds[answers.length]) : review ? u.reviews[key!]?.item : lesson.items[answers.length];
          if (!item || item.id !== cmd.itemId) throw new AppError(409,'현재 문제와 일치하지 않습니다. 다시 불러와 주세요.');
          if (cmd.action === 'hint') { if (!hints.includes(item.id)) hints.push(item.id); }
          else {
-           feedback = {itemId:item.id,expression:item.expression,input:cmd.input,correct:item.answers.some(a => normalize(a)===normalize(cmd.input)), expected:item.answers[0],sentence:item.question.replace('___',item.answers[0]),translation:item.questionTranslation,hinted:hints.includes(item.id),at:now.toISOString()};
+           feedback = {itemId:item.id,expression:item.expression,input:cmd.input,correct:item.answers.some(a => normalize(a)===normalize(cmd.input)), expected:item.answers[0],sentence:item.question.replace('___',item.answers[0]),translation:feedbackTranslation(item.questionTranslation),hinted:hints.includes(item.id),at:now.toISOString()};
            answers.push(feedback);
+           if (!retry) {
            const rk = normalize(item.expression), prev = u.reviews[rk];
            const stage = feedback.correct ? (review ? Math.min((prev?.stage ?? -1)+1,3) : 0) : -1;
            const gap = feedback.correct ? [1,3,7,14][stage] : 1;
@@ -117,6 +132,7 @@ export class AppService {
            if (review && !observations.some(o=>o.date===today)) observations.push({date:today,correct:feedback.correct,hinted:feedback.hinted,age});
            u.reviews[rk] = {item,stage,due:addDays(today,gap),wrong:!feedback.correct,learnedAt,lastAt:today,observations};
            if (!review && answers.length===10) p.completedAt ??= now.toISOString();
+           }
          }
        }
      }

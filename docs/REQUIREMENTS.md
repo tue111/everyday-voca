@@ -29,3 +29,14 @@ Korean UI, Asia/Seoul dates; daily common 10 expressions, everyday nouns/verbs/p
 ## Sequence
 
 H1-H5 harness; F1 identity; F2 recovery/settings; F3 date/content; F4 home; F5 cards; F6 quiz; F7 persistence/idempotency; F8 results; F9 scheduling; F10 review UI; F11 generation; F12 cron/budget/fallback; F13 PWA/speech; F14 subscriptions; F15 reminders; F16 release verification.
+
+## 2026-09-30 워크트리 변경 시나리오 (승인 전)
+
+- NAME-01: 가입·이름 변경에서 닉네임 1~10자 허용, 초과 입력 거부. 서버 계약과 화면 안내 일치.
+- NAME-02: 기존 30자 닉네임은 잘라서 저장하지 않고 모바일 홈·메뉴·설정에서 가로 넘침 없이 표시.
+- RETRY-01: 당일 10문항 완료 후 최초 오답만 선택 재도전. 전부 정답이면 재도전 대상 없음.
+- RETRY-02: 서버에서 채점·세션 검증·중복 제출 방지. 새로고침 후 재개. 재도전은 최초 답안·점수·완료 시각·정기 복습 일정에 영향 없음.
+- RETRY-03: 재도전 재시작은 명시적이며 중복 요청에도 한 세션만 생성. 날짜 변경과 다른 사용자의 세션 접근 거부.
+- TRANS-01: 생성한 한국어 문제 해석에 빈칸 표시가 있으면 게시 전 거부. 생성 지시는 완성된 한국어 문장을 요구.
+- TRANS-02: 기존 데이터의 잘못된 빈칸 해석은 뜻을 추측해 대체하지 않고 안내로 표시. 기존 학습 기록·게시 세트 원본 보존.
+- AUTH-REVIEW: 이름·생년월일 방식 및 복구 코드 제거는 검토 문서만 작성. 인증 동작은 변경하지 않음.

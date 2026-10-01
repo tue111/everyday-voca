@@ -9,3 +9,6 @@
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 
 .speech-controls{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.speech-player{margin:16px 0}.speech-controls select{border:1px solid #cdd8cd;border-radius:6px;padding:5px;background:white;color:#254d39}.speech-controls button:disabled{opacity:.55;cursor:wait}
+
+/* Existing profiles may exceed the current nickname limit. */
+.page-heading{gap:16px}.page-heading>div{min-width:0}.page-heading h1{overflow-wrap:anywhere}.day-badge{flex-shrink:0}.profile>span:last-child{min-width:0;overflow-wrap:anywhere}
